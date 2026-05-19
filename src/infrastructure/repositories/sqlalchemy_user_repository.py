@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.application.users.ports import UserList
 from src.domain.users.entity import User
 from src.domain.users.enums import UserRole
-from src.domain.users.exceptions import UserAlreadyExistsError
+from src.domain.users.exceptions import UserAlreadyExistsError, UserNotFoundError
 from src.infrastructure.models import UserModel
 
 
@@ -59,16 +59,15 @@ class SqlAlchemyUserRepository:
     async def update(self, user: User) -> User:
         user_model = await self._session.get(UserModel, user.id)
         if user_model is None:
-            user_model = self._to_model(user)
-            self._session.add(user_model)
-        else:
-            user_model.username = user.username
-            user_model.email = user.email
-            user_model.first_name = user.first_name
-            user_model.last_name = user.last_name
-            user_model.role = user.role.value
-            user_model.active = user.active
-            user_model.updated_at = user.updated_at
+            raise UserNotFoundError(user.id)
+
+        user_model.username = user.username
+        user_model.email = user.email
+        user_model.first_name = user.first_name
+        user_model.last_name = user.last_name
+        user_model.role = user.role.value
+        user_model.active = user.active
+        user_model.updated_at = user.updated_at
 
         try:
             await self._session.commit()

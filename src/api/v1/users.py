@@ -115,7 +115,7 @@ async def update_user(
 @router.delete(
     "/{user_id}",
     status_code=status.HTTP_204_NO_CONTENT,
-    summary="Deactivate a user",
+    summary="Soft delete a user (deactivate)",
     description="Soft deletes a user by setting active=false. The record remains queryable by id.",
     responses={
         status.HTTP_404_NOT_FOUND: NOT_FOUND_RESPONSE,

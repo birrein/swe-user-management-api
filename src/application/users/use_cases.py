@@ -81,6 +81,7 @@ class UserUseCases:
         user = await self.get_user(user_id)
         if not user.active:
             raise UserNotFoundError(user_id)
+        # The API uses soft delete so audit/history data remains available by id.
         await self._repository.update(user.deactivate())
 
     async def _ensure_unique_username(self, username: str) -> None:

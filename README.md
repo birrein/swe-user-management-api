@@ -130,6 +130,14 @@ pytest
 
 The default test suite uses an in-memory repository through FastAPI dependency overrides. This keeps CI deterministic while the production adapter remains PostgreSQL-backed.
 
+## Code Quality
+
+```bash
+uv run --extra dev ruff check .
+```
+
+Ruff is configured in `pyproject.toml` for import ordering, Python upgrades, and basic lint checks.
+
 ## Postman
 
 Import the files in `postman/` to test the API manually:

@@ -15,6 +15,12 @@ class UserList:
 
 
 class UserRepository(Protocol):
+    """Persistence port used by application use cases.
+
+    Concrete adapters can store users in PostgreSQL, memory, or another database
+    without leaking storage details into the domain/application layers.
+    """
+
     async def create(self, user: User) -> User:
         ...
 
