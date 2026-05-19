@@ -10,7 +10,7 @@ from src.domain.users.enums import UserRole
 
 router = APIRouter(tags=["users"])
 
-VALIDATION_ERROR_RESPONSE = {
+EMAIL_VALIDATION_ERROR_RESPONSE = {
     "description": "Request validation failed",
     "content": {
         "application/json": {
@@ -21,6 +21,62 @@ VALIDATION_ERROR_RESPONSE = {
                         "loc": ["body", "email"],
                         "msg": "value is not a valid email address",
                     }
+                ]
+            }
+        }
+    },
+}
+
+QUERY_VALIDATION_ERROR_RESPONSE = {
+    "description": "Request validation failed",
+    "content": {
+        "application/json": {
+            "example": {
+                "detail": [
+                    {
+                        "type": "greater_than_equal",
+                        "loc": ["query", "skip"],
+                        "msg": "Input should be greater than or equal to 0",
+                    }
+                ]
+            }
+        }
+    },
+}
+
+UUID_VALIDATION_ERROR_RESPONSE = {
+    "description": "Request validation failed",
+    "content": {
+        "application/json": {
+            "example": {
+                "detail": [
+                    {
+                        "type": "uuid_parsing",
+                        "loc": ["path", "user_id"],
+                        "msg": "Input should be a valid UUID",
+                    }
+                ]
+            }
+        }
+    },
+}
+
+PATH_OR_BODY_VALIDATION_ERROR_RESPONSE = {
+    "description": "Request validation failed",
+    "content": {
+        "application/json": {
+            "example": {
+                "detail": [
+                    {
+                        "type": "uuid_parsing",
+                        "loc": ["path", "user_id"],
+                        "msg": "Input should be a valid UUID",
+                    },
+                    {
+                        "type": "value_error",
+                        "loc": ["body", "email"],
+                        "msg": "value is not a valid email address",
+                    },
                 ]
             }
         }
@@ -40,7 +96,7 @@ UNPROCESSABLE_CONTENT_STATUS = 422
     description="Creates a user with a unique username and email.",
     responses={
         status.HTTP_409_CONFLICT: CONFLICT_RESPONSE,
-        UNPROCESSABLE_CONTENT_STATUS: VALIDATION_ERROR_RESPONSE,
+        UNPROCESSABLE_CONTENT_STATUS: EMAIL_VALIDATION_ERROR_RESPONSE,
     },
 )
 async def create_user(
@@ -56,7 +112,7 @@ async def create_user(
     response_model=UserListResponse,
     summary="List users",
     description="Returns a paginated list of users. Active users are returned by default.",
-    responses={UNPROCESSABLE_CONTENT_STATUS: VALIDATION_ERROR_RESPONSE},
+    responses={UNPROCESSABLE_CONTENT_STATUS: QUERY_VALIDATION_ERROR_RESPONSE},
 )
 async def list_users(
     use_cases: Annotated[UserUseCases, Depends(get_user_use_cases)],
@@ -81,7 +137,7 @@ async def list_users(
     description="Returns one user by UUID, including inactive users.",
     responses={
         status.HTTP_404_NOT_FOUND: NOT_FOUND_RESPONSE,
-        UNPROCESSABLE_CONTENT_STATUS: VALIDATION_ERROR_RESPONSE,
+        UNPROCESSABLE_CONTENT_STATUS: UUID_VALIDATION_ERROR_RESPONSE,
     },
 )
 async def get_user(
@@ -100,7 +156,7 @@ async def get_user(
     responses={
         status.HTTP_404_NOT_FOUND: NOT_FOUND_RESPONSE,
         status.HTTP_409_CONFLICT: CONFLICT_RESPONSE,
-        UNPROCESSABLE_CONTENT_STATUS: VALIDATION_ERROR_RESPONSE,
+        UNPROCESSABLE_CONTENT_STATUS: PATH_OR_BODY_VALIDATION_ERROR_RESPONSE,
     },
 )
 async def update_user(
@@ -119,7 +175,7 @@ async def update_user(
     description="Soft deletes a user by setting active=false. The record remains queryable by id.",
     responses={
         status.HTTP_404_NOT_FOUND: NOT_FOUND_RESPONSE,
-        UNPROCESSABLE_CONTENT_STATUS: VALIDATION_ERROR_RESPONSE,
+        UNPROCESSABLE_CONTENT_STATUS: UUID_VALIDATION_ERROR_RESPONSE,
     },
 )
 async def delete_user(
