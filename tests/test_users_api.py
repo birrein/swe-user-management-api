@@ -59,6 +59,21 @@ async def test_reject_invalid_email(client: AsyncClient) -> None:
     assert response.status_code == 422
 
 
+async def test_reject_invalid_username(client: AsyncClient) -> None:
+    response = await client.post(
+        "/api/v1/users",
+        json={
+            "username": "bad username",
+            "email": "manuel.perez@example.com",
+            "first_name": "Manuel",
+            "last_name": "Perez",
+            "role": "user",
+        },
+    )
+
+    assert response.status_code == 422
+
+
 async def test_reject_invalid_role(client: AsyncClient) -> None:
     response = await client.post(
         "/api/v1/users",
@@ -84,6 +99,21 @@ async def test_reject_duplicate_username(client: AsyncClient) -> None:
     }
     first_response = await client.post("/api/v1/users", json=payload)
     second_response = await client.post("/api/v1/users", json={**payload, "email": "other@example.com"})
+
+    assert first_response.status_code == 201
+    assert second_response.status_code == 409
+
+
+async def test_reject_duplicate_email(client: AsyncClient) -> None:
+    payload = {
+        "username": "manuel_perez",
+        "email": "manuel.perez@example.com",
+        "first_name": "Manuel",
+        "last_name": "Perez",
+        "role": "user",
+    }
+    first_response = await client.post("/api/v1/users", json=payload)
+    second_response = await client.post("/api/v1/users", json={**payload, "username": "other_user"})
 
     assert first_response.status_code == 201
     assert second_response.status_code == 409
@@ -149,7 +179,61 @@ async def test_list_users_filters_active_and_role(client: AsyncClient) -> None:
     assert inactive_guests.json()["items"][0]["username"] == "inactive_guest"
 
 
+async def test_list_users_rejects_invalid_pagination(client: AsyncClient) -> None:
+    negative_skip_response = await client.get("/api/v1/users?skip=-1")
+    excessive_limit_response = await client.get("/api/v1/users?limit=101")
+
+    assert negative_skip_response.status_code == 422
+    assert excessive_limit_response.status_code == 422
+
+
 async def test_get_unknown_user_returns_404(client: AsyncClient) -> None:
     response = await client.get("/api/v1/users/11111111-1111-1111-1111-111111111111")
 
     assert response.status_code == 404
+
+
+async def test_update_unknown_user_returns_404(client: AsyncClient) -> None:
+    response = await client.patch(
+        "/api/v1/users/11111111-1111-1111-1111-111111111111",
+        json={"first_name": "Unknown"},
+    )
+
+    assert response.status_code == 404
+
+
+async def test_delete_unknown_user_returns_404(client: AsyncClient) -> None:
+    response = await client.delete("/api/v1/users/11111111-1111-1111-1111-111111111111")
+
+    assert response.status_code == 404
+
+
+async def test_delete_inactive_user_returns_404(client: AsyncClient) -> None:
+    create_response = await client.post(
+        "/api/v1/users",
+        json={
+            "username": "inactive_user",
+            "email": "inactive.user@example.com",
+            "first_name": "Inactive",
+            "last_name": "User",
+            "role": "user",
+        },
+    )
+    user_id = create_response.json()["id"]
+
+    first_delete_response = await client.delete(f"/api/v1/users/{user_id}")
+    second_delete_response = await client.delete(f"/api/v1/users/{user_id}")
+
+    assert first_delete_response.status_code == 204
+    assert second_delete_response.status_code == 404
+
+
+async def test_openapi_documents_core_user_responses(client: AsyncClient) -> None:
+    response = await client.get("/openapi.json")
+    paths = response.json()["paths"]
+
+    assert response.status_code == 200
+    assert "409" in paths["/api/v1/users"]["post"]["responses"]
+    assert "404" in paths["/api/v1/users/{user_id}"]["get"]["responses"]
+    assert "404" in paths["/api/v1/users/{user_id}"]["patch"]["responses"]
+    assert "404" in paths["/api/v1/users/{user_id}"]["delete"]["responses"]

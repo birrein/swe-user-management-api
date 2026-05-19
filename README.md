@@ -39,6 +39,20 @@ tests/              API and use-case tests
 - Docker and Docker Compose support
 - Cloud Build pipeline for test, build, push, and Cloud Run deploy
 
+## Challenge Coverage
+
+| Requirement | Implementation |
+| --- | --- |
+| FastAPI REST API | Versioned endpoints under `/api/v1` with generated OpenAPI docs at `/docs` |
+| CRUD operations | Create, list, get, update, and soft delete users |
+| Input validation | Pydantic schemas validate email, username, role, lengths, UUIDs, and pagination |
+| Error handling | `404` for missing users, `409` for duplicates, `422` for invalid requests |
+| Database integration | PostgreSQL through SQLAlchemy async and Alembic migrations |
+| Tests | Pytest covers use cases, API behavior, validation, duplicates, pagination, and OpenAPI metadata |
+| Logging | JSON request logs to stdout for Cloud Logging |
+| GCP deployment | Cloud Build builds, tests, pushes image, and deploys to Cloud Run connected to Cloud SQL |
+| Manual testing | Postman collection and Cloud Run environment included in `postman/` |
+
 ## API
 
 | Method | Path | Description |
@@ -203,6 +217,7 @@ gcloud artifacts repositories create swe-challenge \
 gcloud sql instances create swe-postgres \
   --database-version=POSTGRES_16 \
   --region=us-central1 \
+  --edition=ENTERPRISE \
   --tier=db-f1-micro
 
 gcloud sql databases create swe_users --instance=swe-postgres

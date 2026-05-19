@@ -62,7 +62,22 @@ class UserUpdate(BaseModel):
 
 
 class UserRead(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(
+        from_attributes=True,
+        json_schema_extra={
+            "example": {
+                "id": "11111111-1111-1111-1111-111111111111",
+                "username": "manuel_marin",
+                "email": "manuel.marin@example.com",
+                "first_name": "Manuel",
+                "last_name": "Marin",
+                "role": "user",
+                "active": True,
+                "created_at": "2026-05-18T23:00:00Z",
+                "updated_at": "2026-05-18T23:00:00Z",
+            }
+        },
+    )
 
     id: UUID
     username: str
@@ -76,7 +91,34 @@ class UserRead(BaseModel):
 
 
 class UserListResponse(BaseModel):
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "items": [
+                    {
+                        "id": "11111111-1111-1111-1111-111111111111",
+                        "username": "manuel_marin",
+                        "email": "manuel.marin@example.com",
+                        "first_name": "Manuel",
+                        "last_name": "Marin",
+                        "role": "user",
+                        "active": True,
+                        "created_at": "2026-05-18T23:00:00Z",
+                        "updated_at": "2026-05-18T23:00:00Z",
+                    }
+                ],
+                "total": 1,
+                "skip": 0,
+                "limit": 50,
+            }
+        }
+    )
+
     items: list[UserRead]
     total: int
     skip: int
     limit: int
+
+
+class ErrorResponse(BaseModel):
+    detail: str = Field(examples=["User 11111111-1111-1111-1111-111111111111 was not found"])

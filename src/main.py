@@ -16,7 +16,14 @@ logger = logging.getLogger("src.http")
 app = FastAPI(
     title=settings.app_name,
     version="0.1.0",
-    description="RESTful user management API built with FastAPI, PostgreSQL, and Clean Architecture.",
+    description=(
+        "RESTful user management API built with FastAPI, PostgreSQL, SQLAlchemy async, "
+        "Alembic, and a pragmatic Clean Architecture approach."
+    ),
+    openapi_tags=[
+        {"name": "health", "description": "Service health and runtime environment checks."},
+        {"name": "users", "description": "CRUD operations for user profiles."},
+    ],
 )
 
 
@@ -48,7 +55,12 @@ async def user_already_exists_handler(_: Request, exc: UserAlreadyExistsError) -
     return JSONResponse(status_code=409, content={"detail": str(exc)})
 
 
-@app.get("/health", tags=["health"])
+@app.get(
+    "/health",
+    tags=["health"],
+    summary="Health check",
+    description="Returns API liveness status and current runtime environment.",
+)
 async def health() -> dict[str, str]:
     return {"status": "ok", "environment": settings.environment}
 
