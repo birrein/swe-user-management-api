@@ -1,0 +1,549 @@
+{
+  "info": {
+    "_postman_id": "d20df526-22b5-43ce-94a1-95aa0be2b773",
+    "name": "SWE User Management API",
+    "description": "Postman collection for validating the SWE User Management API CRUD flow against local or Cloud Run environments.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000"
+    },
+    {
+      "key": "user_id",
+      "value": ""
+    },
+    {
+      "key": "test_username",
+      "value": ""
+    },
+    {
+      "key": "test_email",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Smoke CRUD Flow",
+      "item": [
+        {
+          "name": "01 Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "health"
+              ]
+            },
+            "description": "Checks that the API is reachable."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('health payload is valid', function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.status).to.eql('ok');",
+                  "  pm.expect(json.environment).to.be.a('string');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02 Create User",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const suffix = `${Date.now()}_${Math.floor(Math.random() * 10000)}`;",
+                  "pm.collectionVariables.set('test_username', `challenge_${suffix}`);",
+                  "pm.collectionVariables.set('test_email', `challenge_${suffix}@example.com`);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('user_id', json.id);",
+                  "",
+                  "pm.test('created user has expected fields', function () {",
+                  "  pm.expect(json.id).to.be.a('string');",
+                  "  pm.expect(json.username).to.eql(pm.collectionVariables.get('test_username'));",
+                  "  pm.expect(json.email).to.eql(pm.collectionVariables.get('test_email'));",
+                  "  pm.expect(json.first_name).to.eql('Postman');",
+                  "  pm.expect(json.last_name).to.eql('Smoke');",
+                  "  pm.expect(json.role).to.eql('user');",
+                  "  pm.expect(json.active).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{test_username}}\",\n  \"email\": \"{{test_email}}\",\n  \"first_name\": \"Postman\",\n  \"last_name\": \"Smoke\",\n  \"role\": \"user\",\n  \"active\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/users",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users"
+              ]
+            },
+            "description": "Creates a unique test user and stores the generated user id for subsequent requests."
+          },
+          "response": []
+        },
+        {
+          "name": "03 Create Duplicate User - Expects 409",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 409', function () {",
+                  "  pm.response.to.have.status(409);",
+                  "});",
+                  "",
+                  "pm.test('error payload has detail', function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.detail).to.be.a('string');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{test_username}}\",\n  \"email\": \"{{test_email}}\",\n  \"first_name\": \"Postman\",\n  \"last_name\": \"Duplicate\",\n  \"role\": \"user\",\n  \"active\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/users",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users"
+              ]
+            },
+            "description": "Verifies unique username/email handling."
+          },
+          "response": []
+        },
+        {
+          "name": "04 List Active Users",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('list payload is paginated', function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.items).to.be.an('array');",
+                  "  pm.expect(json.total).to.be.a('number');",
+                  "  pm.expect(json.skip).to.eql(0);",
+                  "  pm.expect(json.limit).to.eql(50);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/users?skip=0&limit=50&active=true",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users"
+              ],
+              "query": [
+                {
+                  "key": "skip",
+                  "value": "0"
+                },
+                {
+                  "key": "limit",
+                  "value": "50"
+                },
+                {
+                  "key": "active",
+                  "value": "true"
+                }
+              ]
+            },
+            "description": "Lists active users with pagination."
+          },
+          "response": []
+        },
+        {
+          "name": "05 Get User by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('returned user matches stored id', function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.id).to.eql(pm.collectionVariables.get('user_id'));",
+                  "  pm.expect(json.active).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/users/{{user_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "{{user_id}}"
+              ]
+            },
+            "description": "Reads the user created earlier in the flow."
+          },
+          "response": []
+        },
+        {
+          "name": "06 Update User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('user was updated', function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.id).to.eql(pm.collectionVariables.get('user_id'));",
+                  "  pm.expect(json.first_name).to.eql('Updated');",
+                  "  pm.expect(json.role).to.eql('admin');",
+                  "  pm.expect(json.active).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"first_name\": \"Updated\",\n  \"role\": \"admin\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/users/{{user_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "{{user_id}}"
+              ]
+            },
+            "description": "Partially updates first_name and role."
+          },
+          "response": []
+        },
+        {
+          "name": "07 Delete User - Soft Delete",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 204', function () {",
+                  "  pm.response.to.have.status(204);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/users/{{user_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "{{user_id}}"
+              ]
+            },
+            "description": "Deactivates the user by setting active=false."
+          },
+          "response": []
+        },
+        {
+          "name": "08 Get Deactivated User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('user is inactive after delete', function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.id).to.eql(pm.collectionVariables.get('user_id'));",
+                  "  pm.expect(json.active).to.eql(false);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/users/{{user_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "{{user_id}}"
+              ]
+            },
+            "description": "Confirms the API implements soft delete."
+          },
+          "response": []
+        },
+        {
+          "name": "09 List Inactive Admin Users",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('inactive admin list contains arrays and pagination', function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.items).to.be.an('array');",
+                  "  pm.expect(json.total).to.be.a('number');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/users?skip=0&limit=50&active=false&role=admin",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users"
+              ],
+              "query": [
+                {
+                  "key": "skip",
+                  "value": "0"
+                },
+                {
+                  "key": "limit",
+                  "value": "50"
+                },
+                {
+                  "key": "active",
+                  "value": "false"
+                },
+                {
+                  "key": "role",
+                  "value": "admin"
+                }
+              ]
+            },
+            "description": "Checks filter support for active and role query parameters."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Validation Examples",
+      "item": [
+        {
+          "name": "Invalid Email - Expects 422",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 422', function () {",
+                  "  pm.response.to.have.status(422);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"bad_email_user\",\n  \"email\": \"not-an-email\",\n  \"first_name\": \"Bad\",\n  \"last_name\": \"Email\",\n  \"role\": \"user\",\n  \"active\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/users",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users"
+              ]
+            },
+            "description": "Validates Pydantic email validation."
+          },
+          "response": []
+        },
+        {
+          "name": "Invalid Role - Expects 422",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 422', function () {",
+                  "  pm.response.to.have.status(422);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"bad_role_user\",\n  \"email\": \"bad.role@example.com\",\n  \"first_name\": \"Bad\",\n  \"last_name\": \"Role\",\n  \"role\": \"owner\",\n  \"active\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/users",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users"
+              ]
+            },
+            "description": "Validates accepted role values: admin, user, guest."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

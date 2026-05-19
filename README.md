@@ -116,6 +116,16 @@ pytest
 
 The default test suite uses an in-memory repository through FastAPI dependency overrides. This keeps CI deterministic while the production adapter remains PostgreSQL-backed.
 
+## Postman
+
+Import the files in `postman/` to test the API manually:
+
+- `postman/swe-user-management-api.postman_collection.json`
+- `postman/local.postman_environment.json`
+- `postman/cloud-run.postman_environment.json`
+
+The collection includes a full smoke CRUD flow, duplicate-user checks, and validation examples.
+
 ## Example Requests
 
 Create a user:
