@@ -76,6 +76,20 @@ PostgreSQL was chosen because it fits the user model well, supports unique const
 
 Interactive OpenAPI documentation is available at `/docs`.
 
+## Live API
+
+The deployed API is available at:
+
+```text
+https://swe-user-api-418589611587.us-central1.run.app
+```
+
+Interactive Swagger documentation:
+
+```text
+https://swe-user-api-418589611587.us-central1.run.app/docs
+```
+
 ## Requirements
 
 - Python 3.12
