@@ -8,20 +8,6 @@ from src.domain.users.enums import UserRole
 USERNAME_PATTERN = r"^[A-Za-z0-9_-]+$"
 
 
-class HealthResponse(BaseModel):
-    model_config = ConfigDict(
-        json_schema_extra={
-            "example": {
-                "status": "ok",
-                "environment": "production",
-            }
-        }
-    )
-
-    status: str = Field(description="Service liveness status.", examples=["ok"])
-    environment: str = Field(description="Current runtime environment.", examples=["local", "production"])
-
-
 class UserBase(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
 
@@ -56,7 +42,7 @@ class UserCreate(UserBase):
                 "last_name": "Marin",
                 "role": "user",
                 "active": True,
-            }
+            },
         },
     )
 
@@ -72,7 +58,7 @@ class UserUpdate(BaseModel):
                 "last_name": "Marin",
                 "role": "admin",
                 "active": True,
-            }
+            },
         },
     )
 
@@ -153,7 +139,3 @@ class UserListResponse(BaseModel):
     total: int
     skip: int
     limit: int
-
-
-class ErrorResponse(BaseModel):
-    detail: str = Field(examples=["User 11111111-1111-1111-1111-111111111111 was not found"])

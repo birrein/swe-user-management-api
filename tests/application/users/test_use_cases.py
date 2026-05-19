@@ -5,7 +5,7 @@ import pytest
 from src.application.users.use_cases import UserUseCases
 from src.domain.users.enums import UserRole
 from src.domain.users.exceptions import UserAlreadyExistsError, UserNotFoundError
-from tests.fakes import InMemoryUserRepository
+from tests.fakes.user_repository import InMemoryUserRepository
 
 
 @pytest.fixture

@@ -3,10 +3,10 @@ from collections.abc import AsyncGenerator
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-from src.api.v1.dependencies import get_user_use_cases
+from src.api.v1.users.dependencies import get_user_use_cases
 from src.application.users.use_cases import UserUseCases
 from src.main import app
-from tests.fakes import InMemoryUserRepository
+from tests.fakes.user_repository import InMemoryUserRepository
 
 
 @pytest.fixture
@@ -258,6 +258,43 @@ async def test_delete_unknown_user_returns_404(client: AsyncClient) -> None:
     response = await client.delete("/api/v1/users/11111111-1111-1111-1111-111111111111")
 
     assert response.status_code == 404
+
+
+async def test_openapi_documents_health_and_user_schemas(client: AsyncClient) -> None:
+    response = await client.get("/openapi.json")
+    openapi = response.json()
+
+    schemas = openapi["components"]["schemas"]
+    paths = openapi["paths"]
+
+    health_response = paths["/health"]["get"]["responses"]["200"]["content"]["application/json"]["schema"]
+    create_response = paths["/api/v1/users"]["post"]["responses"]["201"]["content"]["application/json"]["schema"]
+    list_response = paths["/api/v1/users"]["get"]["responses"]["200"]["content"]["application/json"]["schema"]
+
+    assert response.status_code == 200
+    assert health_response == {"$ref": "#/components/schemas/HealthResponse"}
+    assert create_response == {"$ref": "#/components/schemas/UserRead"}
+    assert list_response == {"$ref": "#/components/schemas/UserListResponse"}
+    assert schemas["UserCreate"]["additionalProperties"] is False
+    assert schemas["UserUpdate"]["additionalProperties"] is False
+
+
+async def test_openapi_documents_validation_examples(client: AsyncClient) -> None:
+    response = await client.get("/openapi.json")
+    openapi = response.json()
+
+    delete_operation = openapi["paths"]["/api/v1/users/{user_id}"]["delete"]
+    patch_validation = openapi["paths"]["/api/v1/users/{user_id}"]["patch"]["responses"]["422"]
+    delete_validation = delete_operation["responses"]["422"]
+
+    patch_examples = patch_validation["content"]["application/json"]["examples"]
+    delete_example = delete_validation["content"]["application/json"]["example"]
+
+    assert response.status_code == 200
+    assert delete_operation["summary"] == "Soft delete a user (deactivate)"
+    assert patch_examples["empty_body"]["value"]["detail"][0]["loc"] == ["body"]
+    assert patch_examples["extra_field"]["value"]["detail"][0]["type"] == "extra_forbidden"
+    assert delete_example["detail"][0]["loc"] == ["path", "user_id"]
 
 
 async def test_delete_inactive_user_returns_404(client: AsyncClient) -> None:

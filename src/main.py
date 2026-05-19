@@ -1,70 +1,37 @@
-import logging
-from time import perf_counter
+from fastapi import FastAPI
 
-from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
-
+from src.api.exception_handlers import register_exception_handlers
+from src.api.health import router as health_router
+from src.api.http_logging import register_http_logging
 from src.api.v1.router import api_router
-from src.api.v1.schemas import HealthResponse
-from src.config import get_settings
-from src.domain.users.exceptions import UserAlreadyExistsError, UserNotFoundError
-from src.logging import configure_logging
+from src.config import Settings, get_settings
+from src.logging_config import configure_logging
 
-settings = get_settings()
-configure_logging(settings)
-logger = logging.getLogger("src.http")
-
-app = FastAPI(
-    title=settings.app_name,
-    version="0.1.0",
-    description=(
-        "RESTful user management API built with FastAPI, PostgreSQL, SQLAlchemy async, "
-        "Alembic, and a pragmatic Clean Architecture approach."
-    ),
-    openapi_tags=[
-        {"name": "health", "description": "Service health and runtime environment checks."},
-        {"name": "users", "description": "CRUD operations for user profiles."},
-    ],
-)
+OPENAPI_TAGS = [
+    {"name": "health", "description": "Service health and runtime environment checks."},
+    {"name": "users", "description": "CRUD operations for user profiles."},
+]
 
 
-@app.middleware("http")
-async def log_request(request: Request, call_next):
-    start = perf_counter()
-    response = await call_next(request)
-    duration_ms = round((perf_counter() - start) * 1000, 2)
-    logger.info(
-        "request completed",
-        extra={
-            "environment": settings.environment,
-            "method": request.method,
-            "path": request.url.path,
-            "status_code": response.status_code,
-            "duration_ms": duration_ms,
-        },
+def create_app(settings: Settings | None = None) -> FastAPI:
+    settings = settings or get_settings()
+    configure_logging(settings)
+
+    app = FastAPI(
+        title=settings.app_name,
+        version="0.1.0",
+        description=(
+            "RESTful user management API built with FastAPI, PostgreSQL, SQLAlchemy async, "
+            "Alembic, and a pragmatic Clean Architecture approach."
+        ),
+        openapi_tags=OPENAPI_TAGS,
     )
-    return response
+
+    register_http_logging(app, settings)
+    register_exception_handlers(app)
+    app.include_router(health_router)
+    app.include_router(api_router, prefix="/api/v1")
+    return app
 
 
-@app.exception_handler(UserNotFoundError)
-async def user_not_found_handler(_: Request, exc: UserNotFoundError) -> JSONResponse:
-    return JSONResponse(status_code=404, content={"detail": str(exc)})
-
-
-@app.exception_handler(UserAlreadyExistsError)
-async def user_already_exists_handler(_: Request, exc: UserAlreadyExistsError) -> JSONResponse:
-    return JSONResponse(status_code=409, content={"detail": str(exc)})
-
-
-@app.get(
-    "/health",
-    tags=["health"],
-    response_model=HealthResponse,
-    summary="Health check",
-    description="Returns API liveness status and current runtime environment.",
-)
-async def health() -> HealthResponse:
-    return HealthResponse(status="ok", environment=settings.environment)
-
-
-app.include_router(api_router, prefix="/api/v1")
+app = create_app()
