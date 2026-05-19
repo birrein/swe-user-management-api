@@ -135,7 +135,7 @@ async def test_reject_duplicate_email(client: AsyncClient) -> None:
     assert second_response.status_code == 409
 
 
-async def test_get_update_and_delete_user(client: AsyncClient) -> None:
+async def test_get_user(client: AsyncClient) -> None:
     create_response = await client.post(
         "/api/v1/users",
         json={
@@ -149,13 +149,50 @@ async def test_get_update_and_delete_user(client: AsyncClient) -> None:
     user_id = create_response.json()["id"]
 
     get_response = await client.get(f"/api/v1/users/{user_id}")
+
+    assert create_response.status_code == 201
+    assert get_response.status_code == 200
+    assert get_response.json()["id"] == user_id
+    assert get_response.json()["username"] == "manuel_perez"
+
+
+async def test_update_user(client: AsyncClient) -> None:
+    create_response = await client.post(
+        "/api/v1/users",
+        json={
+            "username": "manuel_perez",
+            "email": "manuel.perez@example.com",
+            "first_name": "Manuel",
+            "last_name": "Perez",
+            "role": "user",
+        },
+    )
+    user_id = create_response.json()["id"]
+
     update_response = await client.patch(f"/api/v1/users/{user_id}", json={"role": "admin"})
+
+    assert create_response.status_code == 201
+    assert update_response.status_code == 200
+    assert update_response.json()["role"] == "admin"
+
+
+async def test_soft_delete_user(client: AsyncClient) -> None:
+    create_response = await client.post(
+        "/api/v1/users",
+        json={
+            "username": "manuel_perez",
+            "email": "manuel.perez@example.com",
+            "first_name": "Manuel",
+            "last_name": "Perez",
+            "role": "user",
+        },
+    )
+    user_id = create_response.json()["id"]
+
     delete_response = await client.delete(f"/api/v1/users/{user_id}")
     deleted_user_response = await client.get(f"/api/v1/users/{user_id}")
 
-    assert get_response.status_code == 200
-    assert update_response.status_code == 200
-    assert update_response.json()["role"] == "admin"
+    assert create_response.status_code == 201
     assert delete_response.status_code == 204
     assert deleted_user_response.status_code == 200
     assert deleted_user_response.json()["active"] is False

@@ -18,13 +18,23 @@ HTTP request
 
 ```text
 src/
-  api/              FastAPI routes, schemas, dependencies
+  api/              FastAPI app concerns, health check, shared schemas, and v1 routers
+    v1/users/       User router, schemas, params, presenters, responses, and dependencies
   application/      Use cases and repository ports
   domain/           User entity, roles, domain exceptions
   infrastructure/   SQLAlchemy models, sessions, repository adapters
 alembic/            Versioned database migrations
-tests/              API and use-case tests
+tests/
+  api/              API route tests
+  application/      Use-case tests
+  fakes/            Test doubles for ports
 ```
+
+## Architecture Decisions
+
+This project uses a pragmatic ports-and-adapters structure to keep HTTP, business rules, and persistence concerns separated without overengineering a small CRUD API. The application layer depends on a `UserRepository` port, so tests can use an in-memory fake while production uses the PostgreSQL-backed SQLAlchemy adapter.
+
+PostgreSQL was chosen because it fits the user model well, supports unique constraints cleanly, and maps directly to Cloud SQL. Migrations run at container startup to keep the challenge deployment simple.
 
 ## Features
 
@@ -128,7 +138,7 @@ http://localhost:8080/docs
 pytest
 ```
 
-The default test suite uses an in-memory repository through FastAPI dependency overrides. This keeps CI deterministic while the production adapter remains PostgreSQL-backed.
+The test suite covers API routes and application use cases, using an in-memory repository so tests run without PostgreSQL.
 
 ## Code Quality
 

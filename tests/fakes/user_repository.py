@@ -1,11 +1,11 @@
 from uuid import UUID
 
-from src.application.users.ports import UserList
+from src.application.users.ports import UserList, UserRepository
 from src.domain.users.entity import User
 from src.domain.users.enums import UserRole
 
 
-class InMemoryUserRepository:
+class InMemoryUserRepository(UserRepository):
     def __init__(self) -> None:
         self.users: dict[UUID, User] = {}
 
