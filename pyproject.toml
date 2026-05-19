@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=75.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "swe-user-management-api"
+version = "0.1.0"
+description = "FastAPI user management API for the SWE challenge."
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "alembic>=1.16.0",
+    "asyncpg>=0.30.0",
+    "email-validator>=2.2.0",
+    "fastapi>=0.115.0",
+    "greenlet>=3.0.0",
+    "pydantic>=2.11.0",
+    "pydantic-settings>=2.8.0",
+    "sqlalchemy>=2.0.40",
+    "uvicorn[standard]>=0.34.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "httpx>=0.28.0",
+    "pytest>=8.3.0",
+    "pytest-asyncio>=0.25.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+pythonpath = ["."]
