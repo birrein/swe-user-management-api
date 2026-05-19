@@ -89,6 +89,22 @@ async def test_reject_invalid_role(client: AsyncClient) -> None:
     assert response.status_code == 422
 
 
+async def test_reject_extra_fields_on_create(client: AsyncClient) -> None:
+    response = await client.post(
+        "/api/v1/users",
+        json={
+            "username": "manuel_perez",
+            "email": "manuel.perez@example.com",
+            "frist_name": "Manuel",
+            "first_name": "Manuel",
+            "last_name": "Perez",
+            "role": "user",
+        },
+    )
+
+    assert response.status_code == 422
+
+
 async def test_reject_duplicate_username(client: AsyncClient) -> None:
     payload = {
         "username": "manuel_perez",
@@ -143,6 +159,42 @@ async def test_get_update_and_delete_user(client: AsyncClient) -> None:
     assert delete_response.status_code == 204
     assert deleted_user_response.status_code == 200
     assert deleted_user_response.json()["active"] is False
+
+
+async def test_reject_empty_update_body(client: AsyncClient) -> None:
+    create_response = await client.post(
+        "/api/v1/users",
+        json={
+            "username": "manuel_perez",
+            "email": "manuel.perez@example.com",
+            "first_name": "Manuel",
+            "last_name": "Perez",
+            "role": "user",
+        },
+    )
+    user_id = create_response.json()["id"]
+
+    response = await client.patch(f"/api/v1/users/{user_id}", json={})
+
+    assert response.status_code == 422
+
+
+async def test_reject_extra_fields_on_update(client: AsyncClient) -> None:
+    create_response = await client.post(
+        "/api/v1/users",
+        json={
+            "username": "manuel_perez",
+            "email": "manuel.perez@example.com",
+            "first_name": "Manuel",
+            "last_name": "Perez",
+            "role": "user",
+        },
+    )
+    user_id = create_response.json()["id"]
+
+    response = await client.patch(f"/api/v1/users/{user_id}", json={"frist_name": "Typo"})
+
+    assert response.status_code == 422
 
 
 async def test_list_users_filters_active_and_role(client: AsyncClient) -> None:

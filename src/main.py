@@ -5,6 +5,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 from src.api.v1.router import api_router
+from src.api.v1.schemas import HealthResponse
 from src.config import get_settings
 from src.domain.users.exceptions import UserAlreadyExistsError, UserNotFoundError
 from src.logging import configure_logging
@@ -58,11 +59,12 @@ async def user_already_exists_handler(_: Request, exc: UserAlreadyExistsError) -
 @app.get(
     "/health",
     tags=["health"],
+    response_model=HealthResponse,
     summary="Health check",
     description="Returns API liveness status and current runtime environment.",
 )
-async def health() -> dict[str, str]:
-    return {"status": "ok", "environment": settings.environment}
+async def health() -> HealthResponse:
+    return HealthResponse(status="ok", environment=settings.environment)
 
 
 app.include_router(api_router, prefix="/api/v1")

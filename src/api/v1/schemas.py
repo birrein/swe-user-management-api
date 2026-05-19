@@ -1,11 +1,25 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
 
 from src.domain.users.enums import UserRole
 
 USERNAME_PATTERN = r"^[A-Za-z0-9_-]+$"
+
+
+class HealthResponse(BaseModel):
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "status": "ok",
+                "environment": "production",
+            }
+        }
+    )
+
+    status: str = Field(description="Service liveness status.", examples=["ok"])
+    environment: str = Field(description="Current runtime environment.", examples=["local", "production"])
 
 
 class UserBase(BaseModel):
@@ -15,19 +29,26 @@ class UserBase(BaseModel):
         min_length=3,
         max_length=50,
         pattern=USERNAME_PATTERN,
+        description="Unique username. Use 3-50 letters, numbers, underscores, or hyphens.",
         examples=["manuel_marin"],
     )
-    email: EmailStr = Field(examples=["manuel.marin@example.com"])
-    first_name: str = Field(min_length=1, max_length=100, examples=["Manuel"])
-    last_name: str = Field(min_length=1, max_length=100, examples=["Marin"])
-    role: UserRole = Field(default=UserRole.USER, examples=[UserRole.USER])
-    active: bool = Field(default=True, examples=[True])
+    email: EmailStr = Field(description="Unique valid email address.", examples=["manuel.marin@example.com"])
+    first_name: str = Field(min_length=1, max_length=100, description="User first name.", examples=["Manuel"])
+    last_name: str = Field(min_length=1, max_length=100, description="User last name.", examples=["Marin"])
+    role: UserRole = Field(
+        default=UserRole.USER,
+        description="User role: admin, user, or guest.",
+        examples=[UserRole.USER],
+    )
+    active: bool = Field(default=True, description="Whether the user is active.", examples=[True])
 
 
 class UserCreate(UserBase):
     model_config = ConfigDict(
         str_strip_whitespace=True,
+        extra="forbid",
         json_schema_extra={
+            "description": "Payload for creating a user. Unknown fields are rejected.",
             "example": {
                 "username": "manuel_marin",
                 "email": "manuel.marin@example.com",
@@ -43,7 +64,9 @@ class UserCreate(UserBase):
 class UserUpdate(BaseModel):
     model_config = ConfigDict(
         str_strip_whitespace=True,
+        extra="forbid",
         json_schema_extra={
+            "description": "Payload for partially updating a user. At least one known field is required.",
             "example": {
                 "first_name": "Manuel",
                 "last_name": "Marin",
@@ -53,12 +76,24 @@ class UserUpdate(BaseModel):
         },
     )
 
-    username: str | None = Field(default=None, min_length=3, max_length=50, pattern=USERNAME_PATTERN)
-    email: EmailStr | None = None
-    first_name: str | None = Field(default=None, min_length=1, max_length=100)
-    last_name: str | None = Field(default=None, min_length=1, max_length=100)
-    role: UserRole | None = None
-    active: bool | None = None
+    username: str | None = Field(
+        default=None,
+        min_length=3,
+        max_length=50,
+        pattern=USERNAME_PATTERN,
+        description="New unique username. Use 3-50 letters, numbers, underscores, or hyphens.",
+    )
+    email: EmailStr | None = Field(default=None, description="New unique valid email address.")
+    first_name: str | None = Field(default=None, min_length=1, max_length=100, description="New first name.")
+    last_name: str | None = Field(default=None, min_length=1, max_length=100, description="New last name.")
+    role: UserRole | None = Field(default=None, description="New role: admin, user, or guest.")
+    active: bool | None = Field(default=None, description="New active status.")
+
+    @model_validator(mode="after")
+    def require_at_least_one_field(self) -> "UserUpdate":
+        if not self.model_fields_set:
+            raise ValueError("At least one field must be provided for update")
+        return self
 
 
 class UserRead(BaseModel):
